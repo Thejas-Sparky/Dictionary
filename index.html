@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>EDictionary</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      width: 90%;
+      max-width: 600px;
+      text-align: center;
+    }
+
+    h1 {
+      color: #333;
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    input {
+      width: 70%;
+      padding: 0.7rem;
+      font-size: 1rem;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      outline: none;
+    }
+
+    button {
+      padding: 0.7rem 1.2rem;
+      font-size: 1rem;
+      margin-left: 0.5rem;
+      background-color: #5a67d8;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #434190;
+    }
+
+    .result {
+      margin-top: 2rem;
+      text-align: left;
+    }
+
+    .result h2 {
+      color: #5a67d8;
+      font-size: 1.5rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .result p {
+      font-size: 1rem;
+      color: #444;
+      margin: 0.2rem 0;
+    }
+
+    .result audio {
+      margin: 0.5rem 0;
+    }
+
+    .error {
+      color: red;
+      margin-top: 1rem;
+    }
+
+    .part-of-speech {
+      font-weight: bold;
+      margin-top: 1rem;
+      color: #222;
+    }
+
+    .definition {
+      margin-left: 1rem;
+      color: #444;
+    }
+
+    .example {
+      margin-left: 2rem;
+      font-style: italic;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📚 E-Dictionary</h1>
+    <input type="text" id="wordInput" placeholder="Enter a word">
+    <button onclick="getDefinition()">Search</button>
+    <div class="result" id="result"></div>
+    <div class="error" id="error"></div>
+  </div>
+
+  <script>
+    async function getDefinition() {
+      const word = document.getElementById("wordInput").value.trim();
+      const resultDiv = document.getElementById("result");
+      const errorDiv = document.getElementById("error");
+      resultDiv.innerHTML = "";
+      errorDiv.innerText = "";
+
+      if (!word) {
+        errorDiv.innerText = "Please enter a word.";
+        return;
+      }
+
+      try {
+        const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+        const data = await res.json();
+
+        if (data.title === "No Definitions Found") {
+          errorDiv.innerText = "No definition found. Try another word.";
+          return;
+        }
+
+        const entry = data[0];
+        let html = `<h2>${entry.word}</h2>`;
+
+        // Phonetic
+        if (entry.phonetic) {
+          html += `<p><strong>Phonetic:</strong> ${entry.phonetic}</p>`;
+        }
+
+        // Audio (first available)
+        const audioObj = entry.phonetics.find(p => p.audio);
+        if (audioObj && audioObj.audio) {
+          const audioUrl = audioObj.audio.startsWith("http") ? audioObj.audio : `https:${audioObj.audio}`;
+          html += `<audio controls>
+                     <source src="${audioUrl}" type="audio/mp3">
+                     Your browser does not support the audio element.
+                   </audio>`;
+        }
+
+        // Origin
+        if (entry.origin) {
+          html += `<p><strong>Origin:</strong> ${entry.origin}</p>`;
+        }
+
+        // Meanings
+        entry.meanings.forEach(meaning => {
+          html += `<p class="part-of-speech">${meaning.partOfSpeech}</p>`;
+          meaning.definitions.forEach((def, index) => {
+            html += `<p class="definition">${index + 1}. ${def.definition}</p>`;
+            if (def.example) {
+              html += `<p class="example">"${def.example}"</p>`;
+            }
+          });
+        });
+
+        resultDiv.innerHTML = html;
+
+      } catch (error) {
+        console.error(error);
+        errorDiv.innerText = "Something went wrong. Try again later.";
+      }
+    }
+  </script>
+</body>
+  </html>
